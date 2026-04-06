@@ -1,12 +1,12 @@
 import Blog from "../models/Blog.js";
 import User from "../models/User.js";
 
-// 4.19 + 4.21 + 4.22 + 4.23 — GET /api/blogs
+// GET /api/blogs
 export const getAllBlogs = async (req, res, next) => {
     try {
         const { search, author, sortBy, order, page, limit } = req.query;
 
-        // 4.22 — validate sortBy if provided
+        //validate sortBy if provided
         const allowedSortFields = ["likes"];
         if (sortBy && !allowedSortFields.includes(sortBy)) {
             return res.status(400).json({
@@ -15,7 +15,7 @@ export const getAllBlogs = async (req, res, next) => {
             });
         }
 
-        // 4.19 + 4.21 — build filter object
+        // build filter object
         const filter = {};
 
         if (search) {
@@ -26,13 +26,13 @@ export const getAllBlogs = async (req, res, next) => {
             filter.author = { $regex: author, $options: "i" };
         }
 
-        // 4.22 — sort options
+        // sort options
         const sortOptions = {};
         if (sortBy) {
             sortOptions[sortBy] = order === "asc" ? 1 : -1;
         }
 
-        // 4.23 — pagination
+        // pagination
         const pageNum = parseInt(page) || 1;
         const pageSize = parseInt(limit) || 10;
         const skip = (pageNum - 1) * pageSize;
@@ -48,7 +48,7 @@ export const getAllBlogs = async (req, res, next) => {
         res.status(200).json({
             status: "success",
             blogs,
-            // 4.23 — pagination metadata
+            // pagination metadata
             pagination: {
                 currentPage: pageNum,
                 pageSize,
@@ -61,7 +61,7 @@ export const getAllBlogs = async (req, res, next) => {
     }
 };
 
-// 4.17 — POST /api/blogs (assign first user as creator)
+// POST /api/blogs (assign first user as creator)
 export const createBlog = async (req, res, next) => {
     try {
         const { title, author, url, likes } = req.body;
@@ -73,7 +73,7 @@ export const createBlog = async (req, res, next) => {
             });
         }
 
-        // 4.17 — pick first available user as creator
+        // pick first available user as creator
         const user = await User.findOne({});
 
         const blog = new Blog({
@@ -86,7 +86,7 @@ export const createBlog = async (req, res, next) => {
 
         const savedBlog = await blog.save();
 
-        // 4.17 — add blog reference to the user's blogs array
+        // add blog reference to the user's blogs array
         if (user) {
             user.blogs = user.blogs.concat(savedBlog._id);
             await user.save();
@@ -101,7 +101,7 @@ export const createBlog = async (req, res, next) => {
     }
 };
 
-// 4.18 — PATCH /api/blogs/:id/like
+// PATCH /api/blogs/:id/like
 export const likeBlog = async (req, res, next) => {
     try {
         const blog = await Blog.findByIdAndUpdate(

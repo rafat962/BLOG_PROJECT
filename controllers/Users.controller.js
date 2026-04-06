@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
 
-// 4.15 — GET /api/users
+// GET /api/users
 export const getAllUsers = async (req, res, next) => {
     try {
         const users = await User.find({}).populate("blogs", {
@@ -20,12 +20,12 @@ export const getAllUsers = async (req, res, next) => {
     }
 };
 
-// 4.15 + 4.16 — POST /api/users
+// POST /api/users
 export const createUser = async (req, res, next) => {
     try {
         const { username, name, password } = req.body;
 
-        // 4.16 — validate username and password (NOT via Mongoose for password)
+        // validate username and password (NOT via Mongoose for password)
         if (!username || !password) {
             return res.status(400).json({
                 status: "Error",
@@ -47,7 +47,7 @@ export const createUser = async (req, res, next) => {
             });
         }
 
-        // 4.16 — username must be unique
+        // username must be unique
         const existingUser = await User.findOne({ username });
         if (existingUser) {
             return res.status(400).json({
