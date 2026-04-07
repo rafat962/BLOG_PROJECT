@@ -1,6 +1,6 @@
 import Blog from "../models/Blog.js";
 import User from "../models/User.js";
-
+import jwt from "jsonwebtoken";
 // GET /api/blogs
 export const getAllBlogs = async (req, res, next) => {
     try {
@@ -73,24 +73,45 @@ export const createBlog = async (req, res, next) => {
             });
         }
 
-        // pick first available user as creator
-        const user = await User.findOne({});
+        // verify token from req.token
+        if (!req.token) {
+            return res.status(401).json({
+                status: "Error",
+                error: "token missing",
+            });
+        }
+
+        const decodedToken = jwt.verify(req.token, process.env.SECRET);
+
+        if (!decodedToken.id) {
+            return res.status(401).json({
+                status: "Error",
+                error: "token invalid",
+            });
+        }
+
+        // 4.24 — user from token is the creator
+        const user = await User.findById(decodedToken.id);
+
+        if (!user) {
+            return res.status(401).json({
+                status: "Error",
+                error: "user not found",
+            });
+        }
 
         const blog = new Blog({
             title,
             author,
             url,
             likes: likes ?? 0,
-            user: user?._id,
+            user: user._id,
         });
 
         const savedBlog = await blog.save();
 
-        // add blog reference to the user's blogs array
-        if (user) {
-            user.blogs = user.blogs.concat(savedBlog._id);
-            await user.save();
-        }
+        user.blogs = user.blogs.concat(savedBlog._id);
+        await user.save();
 
         res.status(201).json({
             status: "success",
