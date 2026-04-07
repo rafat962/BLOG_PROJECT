@@ -1,4 +1,3 @@
-// extracts token from Authorization header
 const tokenExtractor = (req, res, next) => {
     const authorization = req.get("authorization");
 

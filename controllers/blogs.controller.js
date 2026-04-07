@@ -73,32 +73,7 @@ export const createBlog = async (req, res, next) => {
             });
         }
 
-        // verify token from req.token
-        if (!req.token) {
-            return res.status(401).json({
-                status: "Error",
-                error: "token missing",
-            });
-        }
-
-        const decodedToken = jwt.verify(req.token, process.env.SECRET);
-
-        if (!decodedToken.id) {
-            return res.status(401).json({
-                status: "Error",
-                error: "token invalid",
-            });
-        }
-
-        // 4.24 — user from token is the creator
-        const user = await User.findById(decodedToken.id);
-
-        if (!user) {
-            return res.status(401).json({
-                status: "Error",
-                error: "user not found",
-            });
-        }
+        const user = req.user; // comes from userExtractor middleware
 
         const blog = new Blog({
             title,
@@ -122,7 +97,40 @@ export const createBlog = async (req, res, next) => {
     }
 };
 
-// PATCH /api/blogs/:id/like
+export const deleteBlog = async (req, res, next) => {
+    try {
+        const blog = await Blog.findById(req.params.id);
+
+        if (!blog) {
+            return res.status(404).json({
+                status: "Error",
+                error: "Blog not found",
+            });
+        }
+
+        const user = req.user; //comes from userExtractor middleware
+
+        // only the creator can delete
+        if (blog.user.toString() !== user._id.toString()) {
+            return res.status(403).json({
+                status: "Error",
+                error: "only the creator can delete this blog",
+            });
+        }
+
+        await Blog.findByIdAndDelete(req.params.id);
+
+        // remove blog ref from user
+        user.blogs = user.blogs.filter((b) => b.toString() !== req.params.id);
+        await user.save();
+
+        res.status(204).end();
+    } catch (err) {
+        next(err);
+    }
+};
+
+// PATCH /api/blogs/:id/like — no token needed
 export const likeBlog = async (req, res, next) => {
     try {
         const blog = await Blog.findByIdAndUpdate(
